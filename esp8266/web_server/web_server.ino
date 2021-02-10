@@ -1,5 +1,8 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
+#include <NTPClient.h>
+#include <WiFiUdp.h>
+
 
 /* Put your SSID & Password */
 const char* ssid = "GanjaNetwork";  // Enter SSID here
@@ -11,6 +14,15 @@ IPAddress gateway(192,168,1,1);
 IPAddress subnet(255,255,255,0);
 
 ESP8266WebServer server(80);
+
+
+/*NTP stuff */
+const long utc_offset_sec = 3600 //1h we are in utc+1
+char days_of_week[7][12]={"Monday", "Tuesday", "Wednesday", "Thursday","Friday", "Saturday", "Sunday"};
+WiFiUdp ntp_udp;
+NTPClient ntp_client(ntp_udp, "pool.ntp.org", utc_offset_sec);
+
+
 
 uint8_t LED1pin = 0;
 bool LED1status = HIGH;
