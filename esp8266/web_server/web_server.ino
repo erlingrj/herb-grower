@@ -2,11 +2,8 @@
 #include <ESP8266WebServer.h>
 #include <NTPClient.h>
 #include <WiFiUdp.h>
+#include "secret.h"
 
-
-/* Put your SSID & Password */
-const char* ssid = "GanjaNetwork";  // Enter SSID here
-const char* password = "SnoopLion";  //Enter Password here
 
 /* Put IP Address details */
 IPAddress local_ip(192,168,1,1);
@@ -17,11 +14,12 @@ ESP8266WebServer server(80);
 
 
 /*NTP stuff */
-const long utc_offset_sec = 3600 //1h we are in utc+1
+const long utc_offset_sec = 3600; //1h we are in utc+1
 char days_of_week[7][12]={"Monday", "Tuesday", "Wednesday", "Thursday","Friday", "Saturday", "Sunday"};
-WiFiUdp ntp_udp;
+WiFiUDP ntp_udp;
 NTPClient ntp_client(ntp_udp, "pool.ntp.org", utc_offset_sec);
-
+unsigned long last_ntp_poll = 0;
+unsigned long ntp_poll_interval_s = 60;
 
 
 uint8_t LED1pin = 0;
@@ -36,10 +34,22 @@ void setup() {
   pinMode(LED1pin, OUTPUT);
   pinMode(LED2pin, OUTPUT);
 
-  WiFi.softAP(ssid, password);
-  WiFi.softAPConfig(local_ip, gateway, subnet);
-  delay(100);
+  Serial.println("Connecting to ");
+  Serial.println(ssid);
   
+
+  WiFi.begin(ssid,password);
+
+  while(WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.println(".");  
+  }
+
+  Serial.println("");
+  Serial.println("WiFi connected!");
+  Serial.println("Got IP: "); Serial.println(WiFi.localIP());
+  
+   
   server.on("/", handle_OnConnect);
   server.on("/led1on", handle_led1on);
   server.on("/led1off", handle_led1off);
@@ -52,7 +62,7 @@ void setup() {
 }
 void loop() {
   server.handleClient();
-  
+ 
   if(LED1status)
   {digitalWrite(LED1pin, HIGH);}
   else
@@ -62,6 +72,20 @@ void loop() {
   {digitalWrite(LED2pin, HIGH);}
   else
   {digitalWrite(LED2pin, LOW);}
+
+  unsigned long now = millis();
+  if ((now - last_ntp_poll) > ntp_poll_interval_s*1000) {
+    ntp_client.update();
+    Serial.print(days_of_week[ntp_client.getDay()]);
+    Serial.print(", ");
+    Serial.print(ntp_client.getHours());
+    Serial.print(":");
+    Serial.print(ntp_client.getMinutes());
+    Serial.print(":");
+    Serial.println(ntp_client.getSeconds());
+
+    last_ntp_poll = now;
+  }
   
 }
 
